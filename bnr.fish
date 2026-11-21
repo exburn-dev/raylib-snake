@@ -1,2 +1,3 @@
-cmake --build build
-./build/mygame
+# build n' run
+
+cmake --build build; and ./build/mygame
