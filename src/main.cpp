@@ -29,6 +29,11 @@ struct Grid {
     }
 };
 
+struct Fruit {
+    int x, y;
+    Color color;
+};
+
 struct Snake {
     int x, y;
     const float moveInterval;
@@ -74,7 +79,17 @@ void drawGui() {
     ImGui::End();
 }
 
-void render(Grid *grid, Snake *snake) {
+Fruit spawnFruit(Grid *grid, Snake *snake, Color fruitColor) {
+    Fruit fruit = {0, 0, fruitColor};
+    do {
+        fruit.x = GetRandomValue(0, grid->width - 1);
+        fruit.y = GetRandomValue(0, grid->height - 1);
+    } while(fruit.x == snake->x && fruit.y == snake->y);
+
+    return fruit;
+}
+
+void render(Grid *grid, Snake *snake, Fruit *fruit) {
     BeginDrawing();
     ClearBackground(RAYWHITE);
 
@@ -90,6 +105,7 @@ void render(Grid *grid, Snake *snake) {
     Color checkerLight = clr(50, 50, 50), checkerDark = clr(70, 70, 70);
 
     grid->drawGrid(checkerLight, checkerDark);
+    grid->drawCell(fruit->x, fruit->y, fruit->color);
     snake->drawOn(grid);
 
     rlImGuiEnd();
@@ -110,14 +126,15 @@ int main() {
     setupImgui(darkTheme, 2, 0.5f);
 
 
-    Grid gameGrid = { 0, 0, cellSize, cellsCountX, cellsCountY };
+    Grid grid = { 0, 0, cellSize, cellsCountX, cellsCountY };
     Snake snake = {5, 5, 0.2f, GREEN};
+    Fruit fruit = spawnFruit(&grid, &snake, RED);
     Vector2 direction = {1, 0};
 
     float timer = snake.moveInterval;
 
     while (!WindowShouldClose()) {
-        render(&gameGrid, &snake);
+        render(&grid, &snake, &fruit);
 
         if(IsKeyDown(KEY_LEFT)) { direction = {-1, 0}; }
         if(IsKeyDown(KEY_DOWN)) { direction = {0, 1}; }
@@ -128,7 +145,7 @@ int main() {
         timer -= deltaTime;
 
         if(timer <= 0) {
-            snake.wrappedMove(&gameGrid, direction.x, direction.y);
+            snake.wrappedMove(&grid, direction.x, direction.y);
             timer = snake.moveInterval;
         }
     }
