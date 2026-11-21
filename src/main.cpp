@@ -31,10 +31,20 @@ struct Grid {
 
 struct Snake {
     int x, y;
+    const float moveInterval;
     Color color;
 
     void drawOn(Grid *grid) {
         grid->drawCell(x, y, color);
+    }
+
+    void wrappedMove(Grid *grid, int moveX, int moveY) {
+        x += moveX;
+        y += moveY;
+        if(x < 0) x = grid->width - 1;
+        if(x >= grid->width) x = 0;
+        if(y < 0) y = grid->height - 1;
+        if(y >= grid->height) y = 0;
     }
 };
 
@@ -77,11 +87,10 @@ void render(Grid *grid, Snake *snake) {
 
     //drawGui();
 
-    Vector2 snakePos = {5, 5};
     Color checkerLight = clr(50, 50, 50), checkerDark = clr(70, 70, 70);
 
     grid->drawGrid(checkerLight, checkerDark);
-    grid->drawCell(snakePos.x, snakePos.y, GREEN);
+    snake->drawOn(grid);
 
     rlImGuiEnd();
     ImGuiIO &io = ImGui::GetIO();
@@ -100,11 +109,28 @@ int main() {
 
     setupImgui(darkTheme, 2, 0.5f);
 
+
     Grid gameGrid = { 0, 0, cellSize, cellsCountX, cellsCountY };
-    Snake snake = {5, 5, GREEN};
+    Snake snake = {5, 5, 0.2f, GREEN};
+    Vector2 direction = {1, 0};
+
+    float timer = snake.moveInterval;
 
     while (!WindowShouldClose()) {
         render(&gameGrid, &snake);
+
+        if(IsKeyDown(KEY_LEFT)) { direction = {-1, 0}; }
+        if(IsKeyDown(KEY_DOWN)) { direction = {0, 1}; }
+        if(IsKeyDown(KEY_UP)) { direction = {0, -1}; }
+        if(IsKeyDown(KEY_RIGHT)) { direction = {1, 0}; }
+
+        float deltaTime = GetFrameTime();
+        timer -= deltaTime;
+
+        if(timer <= 0) {
+            snake.wrappedMove(&gameGrid, direction.x, direction.y);
+            timer = snake.moveInterval;
+        }
     }
 
     rlImGuiShutdown();
