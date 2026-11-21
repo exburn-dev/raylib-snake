@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "imgui.h"
 #include "rlImGui.h"
+#include <vector>
 
 const bool darkTheme = true;
 const int cellSize = 100;
@@ -35,21 +36,45 @@ struct Fruit {
 };
 
 struct Snake {
-    int x, y;
+    std::vector<Vector2> segments;
     const float moveInterval;
     Color color;
 
+    Snake(int x, int y, const float moveInterval, Color color)
+        : moveInterval(moveInterval), color(color) {
+
+        segments.push_back({(float) x, (float) y});
+    }
+
+    Vector2* head() {
+        return &segments[0];
+    }
+
+    void addSegment() {
+        segments.push_back(segments[segments.size() - 1]);
+    }
+
     void drawOn(Grid *grid) {
-        grid->drawCell(x, y, color);
+        for(int i = 0; i < segments.size(); i++) {
+            grid->drawCell(segments[i].x, segments[i].y, color);
+        }
     }
 
     void wrappedMove(Grid *grid, int moveX, int moveY) {
-        x += moveX;
-        y += moveY;
-        if(x < 0) x = grid->width - 1;
-        if(x >= grid->width) x = 0;
-        if(y < 0) y = grid->height - 1;
-        if(y >= grid->height) y = 0;
+        if(segments.size() > 1) {
+            for(int i = segments.size() - 1; i > 0; i--) {
+                segments[i] = segments[i - 1];
+            }
+        }
+
+        Vector2 *head = &segments[0];
+
+        head->x += moveX;
+        head->y += moveY;
+        if(head->x < 0) head->x = grid->width - 1;
+        if(head->x >= grid->width) head->x = 0;
+        if(head->y < 0) head->y = grid->height - 1;
+        if(head->y >= grid->height) head->y = 0;
     }
 };
 
@@ -84,7 +109,7 @@ Fruit spawnFruit(Grid *grid, Snake *snake, Color fruitColor) {
     do {
         fruit.x = GetRandomValue(0, grid->width - 1);
         fruit.y = GetRandomValue(0, grid->height - 1);
-    } while(fruit.x == snake->x && fruit.y == snake->y);
+    } while(fruit.x == snake->head()->x && fruit.y == snake->head()->y);
 
     return fruit;
 }
@@ -147,6 +172,11 @@ int main() {
         if(timer <= 0) {
             snake.wrappedMove(&grid, direction.x, direction.y);
             timer = snake.moveInterval;
+        }
+
+        if(snake.head()->x == fruit.x && snake.head()->y == fruit.y) {
+            snake.addSegment();
+            fruit = spawnFruit(&grid, &snake, fruit.color);
         }
     }
 
